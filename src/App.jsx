@@ -1,13 +1,44 @@
 import { useState } from 'react';
 import './App.css';
 import { genererVoyage as genererVoyageAPI } from '../API/proxy';
+// import html2pdf from 'html2pdf.js';
+
+
+const VACATION_STYLES = [
+  { value: "Aventure et nature", label: "Aventure", icon: "🏔️" },
+  { value: "Détente et plage", label: "Détente", icon: "🧘‍♀️" },
+  { value: "Culture et histoire", label: "Culture", icon: "🏛️" },
+  { value: "Gastronomie", label: "Gastronomie", icon: "🍽️" },
+  { value: "Shopping et ville", label: "Shopping", icon: "🛍️" },
+  { value: "Romantique", label: "Romantique", icon: "💕" },
+  { value: "Famille", label: "Famille", icon: "👨‍👩‍👧‍👦" }
+];
+
+const DIETARY_OPTIONS = [
+  { value: "Végétarien", label: "Végétarien", icon: "🥗" },
+  { value: "Végan", label: "Végan", icon: "🌱" },
+  { value: "Halal", label: "Halal", icon: "☪️" },
+  { value: "Casher", label: "Casher", icon: "🕍" },
+  { value: "Sans gluten", label: "Sans gluten", icon: "🌾" },
+  { value: "Sans lactose", label: "Sans lactose", icon: "🥛" },
+  { value: "Pescétarien", label: "Pescétarien", icon: "🐟" }
+];
+
+// Mapping for budget slider
+const BUDGET_MAPPING = [
+  { label: "Petit", value: "Petit budget (500-1000€)", rangeLabel: "500-1k€" },
+  { label: "Moyen", value: "Budget moyen (1000-2500€)", rangeLabel: "1k-2.5k€" },
+  { label: "Confort", value: "Budget confortable (2500-5000€)", rangeLabel: "2.5k-5k€" },
+  { label: "Luxe", value: "Budget luxe (5000€+)", rangeLabel: "5k€+" }
+];
 
 function App() {
   const [depart, setDepart] = useState('');
   const [destination, setDestination] = useState('');
-  const [budget, setBudget] = useState('');
+  const [budgetIndex, setBudgetIndex] = useState(1); // Default to Moyen (index 1)
   const [duree, setDuree] = useState('');
-  const [style, setStyle] = useState('');
+  const [styles, setStyles] = useState([]);
+  const [diets, setDiets] = useState([]);
   const [adultes, setAdultes] = useState(1);
   const [enfants, setEnfants] = useState(0);
   const [animaux, setAnimaux] = useState(false);
@@ -17,7 +48,10 @@ function App() {
   const [error, setError] = useState('');
 
   const genererVoyage = async () => {
-    if (!destination || !budget || !duree || !style) {
+    // Determine actual budget string from index
+    const budget = BUDGET_MAPPING[budgetIndex].value;
+
+    if (!destination || !budget || !duree || styles.length === 0) {
       alert("Remplis tous les champs !");
       return;
     }
@@ -28,19 +62,12 @@ function App() {
 
     try {
       // APPEL VIA LE PROXY (FRONTEND)
-      const data = await genererVoyageAPI({ depart, destination, budget, duree, style, adultes, enfants, animaux, dates });
-
-      // Plus besoin de response.json() ici car genererVoyage renvoie déjà l'objet { itineraire: ... }
-
-      // Le code suivant s'attend à recevoir 'data' avec 'itineraire'
-
+      const data = await genererVoyageAPI({ depart, destination, budget, duree, style: styles.join(', '), diet: diets.join(', '), adultes, enfants, animaux, dates });
 
       try {
         let cleanText = data.itineraire;
-        // Nettoyage des balises markdown éventuelles
         cleanText = cleanText.replace(/```json/g, "").replace(/```/g, "").trim();
 
-        // Extraction du JSON pur si texte autour
         const firstBrace = cleanText.indexOf('{');
         const lastBrace = cleanText.lastIndexOf('}');
 
@@ -53,7 +80,6 @@ function App() {
       } catch (parseError) {
         console.error("Erreur de parsing JSON:", parseError);
         setError("Erreur format de données reçu");
-        // Fallback if it's just text
         setResultat({ error: "Format inattendu", raw: data.itineraire });
       }
 
@@ -65,368 +91,437 @@ function App() {
     }
   };
 
+  const handleDownloadPDF = () => {
+    alert("Fonctionnalité désactivée temporairement pour débogage.");
+    /*
+    const element = document.getElementById('itinerary-container');
+    const opt = {
+      margin: 10,
+      filename: `voyage-${destination || 'itinerary'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    html2pdf().set(opt).from(element).save();
+    */
+  };
+
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #e0e7ff)', padding: '2rem' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto', background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+    // No .app-wrapper anymore, using user's body flex layout
+    <>
+      {/* Left Panel: Form */}
+      <div className="w-full lg:w-1/2 h-full overflow-y-auto custom-scrollbar bg-white relative z-10 flex flex-col">
+        <div className="max-w-xl mx-auto px-8 py-12 w-full">
 
-        <h1 style={{ textAlign: 'center', fontSize: '2.5rem', color: '#312e81', marginBottom: '0.5rem' }}>
-          🌍 Travel IA Pro
-        </h1>
-        <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '2rem' }}>
-          Itinéraires avec données en temps réel 🔍
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-              🛫 Lieu de départ
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: Paris, Lyon..."
-              value={depart}
-              onChange={(e) => setDepart(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', border: '2px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-              📍 Destination
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: Tokyo, Bali..."
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', border: '2px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-              💰 Budget
-            </label>
-            <select
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', border: '2px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
-            >
-              <option value="">Budget ?</option>
-              <option value="Petit budget (500-1000€)">Petit (500-1000€)</option>
-              <option value="Budget moyen (1000-2500€)">Moyen (1000-2500€)</option>
-              <option value="Budget confortable (2500-5000€)">Confort (2500-5000€)</option>
-              <option value="Budget luxe (5000€+)">Luxe (5000€+)</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-              ⏱️ Durée
-            </label>
-            <select
-              value={duree}
-              onChange={(e) => setDuree(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', border: '2px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
-            >
-              <option value="">Durée ?</option>
-              <option value="Week-end (2-3 jours)">Week-end</option>
-              <option value="1 semaine">1 semaine</option>
-              <option value="2 semaines">2 semaines</option>
-              <option value="3 semaines">3 semaines+</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-              ✨ Style
-            </label>
-            <select
-              value={style}
-              onChange={(e) => setStyle(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', border: '2px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
-            >
-              <option value="">Style ?</option>
-              <option value="Aventure et nature">🏔️ Aventure</option>
-              <option value="Détente et plage">🏖️ Détente</option>
-              <option value="Culture et histoire">🏛️ Culture</option>
-              <option value="Gastronomie">🍽️ Gastronomie</option>
-              <option value="Shopping et ville">🛍️ Shopping</option>
-              <option value="Romantique">💕 Romantique</option>
-              <option value="Famille">👨‍👩‍👧‍👦 Famille</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-              📅 Date de départ
-            </label>
-            <input
-              type="date"
-              value={dates.depart}
-              onChange={(e) => setDates({ ...dates, depart: e.target.value })}
-              style={{ width: '100%', padding: '0.75rem', border: '2px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-              📅 Date de retour
-            </label>
-            <input
-              type="date"
-              value={dates.retour}
-              onChange={(e) => setDates({ ...dates, retour: e.target.value })}
-              style={{ width: '100%', padding: '0.75rem', border: '2px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
-            />
-          </div>
-        </div>
-
-        {/* Section Voyageurs */}
-        <div style={{ marginBottom: '2rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-          <h3 style={{ fontSize: '1.2rem', color: '#1e40af', marginBottom: '1rem', marginTop: 0 }}>👥 Voyageurs</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', alignItems: 'end' }}>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-                Adultes 🧑
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={adultes}
-                onChange={(e) => setAdultes(parseInt(e.target.value) || 1)}
-                style={{ width: '100%', padding: '0.75rem', border: '2px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
-              />
+          <div className="mb-10 text-center lg:text-left">
+            <div className="flex items-center justify-center lg:justify-start gap-2 mb-2">
+              <i className="fa-solid fa-earth-americas text-3xl text-indigo-600"></i>
+              <h1 className="text-3xl font-bold text-slate-900">Travel AI Pro</h1>
             </div>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-                Enfants 🧒
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={enfants}
-                onChange={(e) => setEnfants(parseInt(e.target.value) || 0)}
-                style={{ width: '100%', padding: '0.75rem', border: '2px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', height: '100%', paddingBottom: '0.5rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: '600', color: '#374151' }}>
-                <input
-                  type="checkbox"
-                  checked={animaux}
-                  onChange={(e) => setAnimaux(e.target.checked)}
-                  style={{ width: '1.25rem', height: '1.25rem', marginRight: '0.5rem', accentColor: '#4f46e5' }}
-                />
-                Animaux 🐾
-              </label>
-            </div>
-
+            <p className="text-slate-500 text-sm">Laissez l'intelligence artificielle dessiner votre prochaine évasion.</p>
           </div>
-        </div>
 
-        <button
-          onClick={genererVoyage}
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '1rem',
-            background: loading ? '#9ca3af' : '#4f46e5',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '1.1rem',
-            border: 'none',
-            borderRadius: '0.5rem',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            marginBottom: '2rem'
-          }}
-        >
-          {loading ? '🔄 Recherche en cours... (30s)' : '🚀 Générer mon voyage'}
-        </button>
+          <div className="space-y-8">
 
-        {error && (
-          <div style={{ background: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '0.5rem', textAlign: 'center', marginBottom: '1rem' }}>
-            {error}
-          </div>
-        )}
-
-        {resultat && !resultat.error && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-
-            {/* Résumé */}
-            <div style={{ background: '#eff6ff', padding: '1.5rem', borderRadius: '0.75rem', borderLeft: '5px solid #3b82f6' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e40af', marginBottom: '0.5rem' }}>
-                ✈️ Voyage à {resultat.destination}
-              </h2>
-              <p><strong>💰 Budget estimé :</strong> {resultat.budget_total_estime}</p>
-            </div>
-
-            {/* Carte Google Maps */}
-            <div style={{ borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <iframe
-                width="100%"
-                height="300"
-                frameBorder="0"
-                scrolling="no"
-                marginHeight="0"
-                marginWidth="0"
-                src={`https://maps.google.com/maps?q=${encodeURIComponent(resultat.destination)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
-              ></iframe>
-            </div>
-
-            {/* Transports */}
-            {resultat.transports && resultat.transports.length > 0 && (
-              <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#374151', marginBottom: '1rem' }}>✈️ Options de Transport</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                  {resultat.transports.map((transport, index) => (
-                    <div key={index} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', borderLeft: '4px solid #6366f1' }}>
-                      <div style={{ fontWeight: 'bold', color: '#1e3a8a' }}>{transport.type}</div>
-                      <div style={{ color: '#4b5563', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{transport.compagnie}</div>
-                      <div style={{ color: '#059669', fontWeight: '600' }}>{transport.prix}</div>
-                      {transport.lien && (
-                        <a href={transport.lien} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '0.5rem', color: '#4f46e5', textDecoration: 'none', fontSize: '0.9rem', fontWeight: '600' }}>
-                          🎟️ Voir le billet
-                        </a>
-                      )}
-                    </div>
-                  ))}
+            {/* Lieux */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lieu de départ</label>
+                <div className="relative">
+                  <i className="fa-solid fa-plane-departure absolute left-4 top-3.5 text-indigo-400"></i>
+                  <input
+                    type="text"
+                    placeholder="Ex: Paris, Lyon..."
+                    value={depart}
+                    onChange={(e) => setDepart(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition shadow-sm placeholder-slate-400 font-medium"
+                  />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Destination</label>
+                <div className="relative">
+                  <i className="fa-solid fa-location-dot absolute left-4 top-3.5 text-pink-500"></i>
+                  <input
+                    type="text"
+                    placeholder="Ex: Tokyo, Bali..."
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-pink-500 transition shadow-sm placeholder-slate-400 font-medium"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dates & Durée */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Durée</label>
+                <div className="relative">
+                  <select
+                    value={duree}
+                    onChange={(e) => setDuree(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition shadow-sm font-medium text-slate-700 appearance-none"
+                  >
+                    <option value="">Durée ?</option>
+                    <option value="Week-end (2-3 jours)">Week-end</option>
+                    <option value="1 semaine">1 semaine</option>
+                    <option value="2 semaines">2 semaines</option>
+                    <option value="3 semaines">3 semaines+</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700">
+                    <i className="fa-solid fa-chevron-down text-xs"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Quand ?</label>
+                <div className="flex items-center bg-slate-50 rounded-xl p-1 shadow-sm border border-slate-100">
+                  <input
+                    type="text"
+                    placeholder="Départ"
+                    onFocus={(e) => (e.target.type = 'date')}
+                    onBlur={(e) => (e.target.type = 'text')}
+                    value={dates.depart}
+                    onChange={(e) => setDates({ ...dates, depart: e.target.value })}
+                    className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
+                  />
+                  <span className="text-slate-300">|</span>
+                  <input
+                    type="text"
+                    placeholder="Retour"
+                    onFocus={(e) => (e.target.type = 'date')}
+                    onBlur={(e) => (e.target.type = 'text')}
+                    value={dates.retour}
+                    onChange={(e) => setDates({ ...dates, retour: e.target.value })}
+                    className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Budget Slider */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex justify-between">
+                <span>Budget</span>
+                <span className="text-indigo-600 font-bold">{BUDGET_MAPPING[budgetIndex].rangeLabel}</span>
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="3"
+                step="1"
+                value={budgetIndex}
+                onChange={(e) => setBudgetIndex(parseInt(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 uppercase font-bold">
+                <span>Éco</span>
+                <span>Moyen</span>
+                <span>Confort</span>
+                <span>Luxe</span>
+              </div>
+            </div>
+
+            <hr className="border-slate-100" />
+
+            {/* Styles */}
+            <div className="space-y-3">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Style de voyage</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {VACATION_STYLES.map((style) => {
+                  const isSelected = styles.includes(style.value);
+                  return (
+                    <div
+                      key={style.value}
+                      onClick={() => {
+                        if (isSelected) {
+                          setStyles(styles.filter(s => s !== style.value));
+                        } else {
+                          setStyles([...styles, style.value]);
+                        }
+                      }}
+                      className={`cursor-pointer rounded-xl p-3 text-center transition hover:shadow-md border-2
+                                        ${isSelected
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-slate-200 hover:border-indigo-300 hover:bg-white text-slate-600'
+                        }`}
+                    >
+                      <div className="text-2xl mb-1">{style.icon}</div>
+                      <div className="text-xs font-bold">{style.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Diets */}
+            <div className="space-y-3">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Régime Alimentaire</label>
+              <div className="flex flex-wrap gap-2">
+                {DIETARY_OPTIONS.map((diet) => {
+                  const isSelected = diets.includes(diet.value);
+                  return (
+                    <div
+                      key={diet.value}
+                      onClick={() => {
+                        if (isSelected) {
+                          setDiets(diets.filter(d => d !== diet.value));
+                        } else {
+                          setDiets([...diets, diet.value]);
+                        }
+                      }}
+                      className={`cursor-pointer rounded-full px-4 py-2 text-xs font-bold transition flex items-center gap-2 border
+                                        ${isSelected
+                          ? 'bg-pink-100 text-pink-600 border-pink-200'
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-pink-300'
+                        }`}
+                    >
+                      <span>{diet.icon}</span> {diet.label}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Voyageurs */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Adultes */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center">
+                    <i className="fa-solid fa-user-group"></i>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">Adultes</p>
+                    <p className="text-xs text-slate-500">12 ans et +</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setAdultes(Math.max(1, adultes - 1))}
+                    className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-600 transition flex items-center justify-center"
+                  >-</button>
+                  <span className="font-bold text-slate-800 w-4 text-center">{adultes}</span>
+                  <button
+                    onClick={() => setAdultes(adultes + 1)}
+                    className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-600 transition flex items-center justify-center"
+                  >+</button>
+                </div>
+              </div>
+
+              {/* Enfants */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-pink-100 text-pink-600 w-10 h-10 rounded-full flex items-center justify-center">
+                    <i className="fa-solid fa-child"></i>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">Enfants</p>
+                    <p className="text-xs text-slate-500">Moins de 12 ans</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setEnfants(Math.max(0, enfants - 1))}
+                    className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-pink-100 hover:text-pink-600 transition flex items-center justify-center"
+                  >-</button>
+                  <span className="font-bold text-slate-800 w-4 text-center">{enfants}</span>
+                  <button
+                    onClick={() => setEnfants(enfants + 1)}
+                    className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-pink-100 hover:text-pink-600 transition flex items-center justify-center"
+                  >+</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Animaux */}
+            <div
+              onClick={() => setAnimaux(!animaux)}
+              className={`cursor-pointer flex items-center justify-between p-4 rounded-xl border transition
+                        ${animaux ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-transparent'}
+                    `}
+            >
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                <i className={`fa-solid fa-paw ${animaux ? 'text-indigo-500' : 'text-slate-400'}`}></i>
+                Voyager avec un animal ?
+              </div>
+              <div className={`w-10 h-5 rounded-full relative transition ${animaux ? 'bg-indigo-500' : 'bg-slate-300'}`}>
+                <div className={`absolute top-1 left-1 bg-white w-3 h-3 rounded-full transition transform ${animaux ? 'translate-x-5' : 'translate-x-0'}`}></div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={genererVoyage}
+              disabled={loading}
+              className="group w-full py-4 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-pink-500 text-white font-bold text-lg shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              <span>{loading ? 'Génération en cours...' : 'Générer mon voyage'}</span>
+              <i className={`fa-solid fa-wand-magic-sparkles ${!loading && 'group-hover:animate-pulse'}`}></i>
+            </button>
+
+            {error && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl text-center text-sm font-bold">
+                {error}
               </div>
             )}
 
-            {/* Hôtels */}
-            <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#374151', marginBottom: '1rem' }}>🏨 Hébergements recommandés</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                {resultat.hotels.map((hotel, index) => (
-                  <div key={index} style={{ background: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                    {hotel.image_prompt && (
-                      <img
-                        src={`https://image.pollinations.ai/prompt/${encodeURIComponent(hotel.image_prompt)}`}
-                        alt={hotel.nom}
-                        style={{ width: '100%', height: '150px', objectFit: 'cover' }}
-                      />
-                    )}
-                    <div style={{ padding: '1rem' }}>
-                      <div style={{ fontWeight: 'bold', color: '#111827' }}>{hotel.nom}</div>
-                      <div style={{ color: '#6b7280', fontSize: '0.9rem' }}>{hotel.emplacement}</div>
-                      <div style={{ color: '#059669', fontWeight: '600', marginTop: '0.5rem' }}>{hotel.prix_par_nuit}</div>
-                      {hotel.lien && (
-                        <a href={hotel.lien} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '0.5rem', color: '#4f46e5', textDecoration: 'none', fontSize: '0.9rem' }}>
-                          🔗 Voir le site
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Itinéraire */}
-            <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#374151', marginBottom: '1rem' }}>🗺️ Itinéraire jour par jour</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {resultat.itineraire.map((jour, index) => (
-                  <div key={index} style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', overflow: 'hidden' }}>
-                    <div style={{ background: '#f3f4f6', padding: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #e5e7eb' }}>
-                      {jour.jour}
-                    </div>
-                    <div style={{ padding: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                      <div>
-                        <span style={{ display: 'block', fontSize: '0.8rem', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase' }}>Matin</span>
-                        {jour.matin}
-                      </div>
-                      <div>
-                        <span style={{ display: 'block', fontSize: '0.8rem', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase' }}>Après-midi</span>
-                        {jour.apres_midi}
-                      </div>
-                      <div>
-                        <span style={{ display: 'block', fontSize: '0.8rem', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase' }}>Soir</span>
-                        {jour.soir}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Restaurants */}
-            <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#374151', marginBottom: '1rem' }}>🍽️ Restaurants à tester</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                {resultat.restaurants.map((resto, index) => (
-                  <div key={index} style={{ background: '#fffbeb', borderRadius: '0.5rem', border: '1px solid #fde68a', overflow: 'hidden' }}>
-                    {resto.image_prompt && (
-                      <img
-                        src={`https://image.pollinations.ai/prompt/${encodeURIComponent(resto.image_prompt)}`}
-                        alt={resto.nom}
-                        style={{ width: '100%', height: '150px', objectFit: 'cover' }}
-                      />
-                    )}
-                    <div style={{ padding: '1rem' }}>
-                      <div style={{ fontWeight: 'bold', color: '#92400e' }}>{resto.nom}</div>
-                      <div style={{ color: '#b45309', fontSize: '0.9rem' }}>{resto.type}</div>
-                      <div style={{ color: '#d97706', fontWeight: '600', marginTop: '0.5rem' }}>{resto.prix_moyen}</div>
-                      {resto.lien && (
-                        <a href={resto.lien} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '0.5rem', color: '#b45309', textDecoration: 'underline', fontSize: '0.9rem' }}>
-                          🔗 Voir le resto
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Activités */}
-            <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#374151', marginBottom: '1rem' }}>🎟️ Activités incontournables</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                {resultat.activites.map((act, index) => (
-                  <div key={index} style={{ background: '#ecfdf5', borderRadius: '0.5rem', border: '1px solid #a7f3d0', overflow: 'hidden' }}>
-                    {act.image_prompt && (
-                      <img
-                        src={`https://image.pollinations.ai/prompt/${encodeURIComponent(act.image_prompt)}`}
-                        alt={act.nom}
-                        style={{ width: '100%', height: '150px', objectFit: 'cover' }}
-                      />
-                    )}
-                    <div style={{ padding: '1rem' }}>
-                      <div style={{ fontWeight: 'bold', color: '#065f46' }}>{act.nom}</div>
-                      <div style={{ color: '#047857', fontSize: '0.9rem', marginBottom: '0.5rem' }}>{act.description}</div>
-                      <div style={{ color: '#059669', fontWeight: '600' }}>{act.prix}</div>
-                      {act.lien && (
-                        <a href={act.lien} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '0.5rem', color: '#059669', textDecoration: 'underline', fontSize: '0.9rem' }}>
-                          🔗 Voir l'activité
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
           </div>
-        )}
 
-        {resultat && resultat.error && (
-          <div style={{ marginTop: '2rem', padding: '1rem', border: '1px solid #red', borderRadius: '0.5rem' }}>
-            <h3>⚠️ Problème d'affichage</h3>
-            <p>{resultat.error}</p>
-            <code style={{ display: 'block', background: '#f3f4f6', padding: '1rem', borderRadius: '0.5rem', overflowX: 'auto' }}>
-              {resultat.raw}
-            </code>
-          </div>
-        )}
-
+          <p className="mt-6 text-center text-xs text-slate-400">Powered by Advanced AI • © 2025 Travel AI Pro</p>
+        </div>
       </div>
-    </div>
+
+      {/* Right Panel: Results or Image */}
+      <div className="hidden lg:block w-1/2 relative bg-slate-100 overflow-y-auto custom-scrollbar">
+        {!resultat ? (
+          // Placeholder Image
+          <div className="h-full w-full relative">
+            <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop" alt="Travel Background" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+            <div className="absolute bottom-16 left-12 right-12 text-white">
+              <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-medium mb-4 border border-white/30">
+                ✨ Nouvelle version disponible
+              </div>
+              <h2 className="text-5xl font-serif mb-4 leading-tight">Le monde est grand.<br />Explorez-le mieux.</h2>
+              <p className="text-lg text-slate-200 font-light max-w-md">Notre IA analyse des milliers d'itinéraires pour créer le voyage parfait, adapté à votre rythme et vos envies.</p>
+            </div>
+          </div>
+        ) : (
+          // Results Display (Reusing current card logic but wrapping in padding)
+          <div className="p-8 space-y-8 min-h-full">
+            {resultat.error ? (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-red-100">
+                <h3 className="text-xl font-bold text-red-600 mb-2">⚠️ Problème d'affichage</h3>
+                <p className="text-slate-600 mb-4">{resultat.error}</p>
+                <code className="block bg-slate-50 p-4 rounded-lg text-xs overflow-x-auto text-slate-500">
+                  {resultat.raw}
+                </code>
+              </div>
+            ) : (
+              <div id="itinerary-container" className="space-y-8 animate-fade-in-up">
+
+                {/* Header Result */}
+                <div className="bg-white p-8 rounded-2xl shadow-sm text-center border border-indigo-50">
+                  <h2 className="text-3xl font-serif font-bold text-indigo-900 mb-2">
+                    ✈️ Voyage à {resultat.destination}
+                  </h2>
+                  <div className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full text-sm font-bold">
+                    Budget estimé : {resultat.budget_total_estime}
+                  </div>
+                </div>
+
+                {/* Map */}
+                <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+                  <iframe
+                    width="100%"
+                    height="350"
+                    frameBorder="0"
+                    scrolling="no"
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(resultat.destination)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                  ></iframe>
+                </div>
+
+                {/* Transports */}
+                {resultat.transports?.length > 0 && (
+                  <div>
+                    <h3 className="text-2xl font-serif font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <span className="bg-indigo-100 p-2 rounded-lg text-xl">✈️</span> Transports
+                    </h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      {resultat.transports.map((t, i) => (
+                        <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 border-l-4 border-l-indigo-500 flex justify-between items-center">
+                          <div>
+                            <div className="font-bold text-slate-900 text-lg">{t.type}</div>
+                            <div className="text-slate-500 text-sm">{t.compagnie}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-green-600 font-bold text-xl">{t.prix}</div>
+                            {t.lien && <a href={t.lien} target="_blank" className="text-xs text-indigo-500 hover:underline">Voir le billet</a>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Itinerary */}
+                <div>
+                  <h3 className="text-2xl font-serif font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <span className="bg-indigo-100 p-2 rounded-lg text-xl">🗺️</span> Itinéraire
+                  </h3>
+                  <div className="space-y-6">
+                    {resultat.itineraire.map((jour, i) => (
+                      <div key={i} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="bg-slate-50 px-6 py-4 font-bold text-indigo-900 border-b border-slate-100">
+                          {jour.jour}
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div><span className="text-xs font-bold uppercase text-indigo-400 block mb-2">Matin</span>{jour.matin}</div>
+                          <div><span className="text-xs font-bold uppercase text-indigo-400 block mb-2">Midi</span>{jour.apres_midi}</div>
+                          <div><span className="text-xs font-bold uppercase text-indigo-400 block mb-2">Soir</span>{jour.soir}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Hotels & Activities (Grid) */}
+                {[
+                  { title: "Hébergements", icon: "🏨", data: resultat.hotels, color: "blue" },
+                  { title: "Restaurants", icon: "🍽️", data: resultat.restaurants, color: "orange" },
+                  { title: "Activités", icon: "🎟️", data: resultat.activites, color: "emerald" }
+                ].map((section, idx) => (
+                  <div key={idx}>
+                    <h3 className="text-2xl font-serif font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <span className={`bg-${section.color}-100 p-2 rounded-lg text-xl`}>{section.icon}</span> {section.title}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {section.data.map((item, i) => (
+                        <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md transition group">
+                          {item.image_prompt && (
+                            <div className="h-48 overflow-hidden relative">
+                              <img
+                                src={`https://image.pollinations.ai/prompt/${encodeURIComponent(item.image_prompt)}`}
+                                className="w-full h-full object-cover transform group-hover:scale-105 transition duration-500"
+                                alt={item.nom}
+                              />
+                              <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded-md shadow-sm">
+                                {item.prix_par_nuit || item.prix_moyen || item.prix}
+                              </div>
+                            </div>
+                          )}
+                          <div className="p-5">
+                            <h4 className="font-bold text-lg text-slate-800 mb-1">{item.nom}</h4>
+                            <p className="text-sm text-slate-500 mb-3">{item.emplacement || item.type || item.description}</p>
+                            {item.lien && (
+                              <a href={item.lien} target="_blank" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                En savoir plus <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  onClick={handleDownloadPDF}
+                  className="w-full py-4 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 transition flex items-center justify-center gap-2"
+                >
+                  <i className="fa-solid fa-download"></i> Télécharger le PDF
+                </button>
+
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
