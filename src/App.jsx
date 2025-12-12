@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 import { genererVoyage as genererVoyageAPI } from '../API/proxy';
-// import html2pdf from 'html2pdf.js';
+import html2pdf from 'html2pdf.js';
 
 
 const VACATION_STYLES = [
@@ -46,6 +46,9 @@ function App() {
   const [resultat, setResultat] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [inputTypeDepart, setInputTypeDepart] = useState('text');
+  const [inputTypeRetour, setInputTypeRetour] = useState('text');
 
   const genererVoyage = async () => {
     // Determine actual budget string from index
@@ -92,8 +95,6 @@ function App() {
   };
 
   const handleDownloadPDF = () => {
-    alert("Fonctionnalité désactivée temporairement pour débogage.");
-    /*
     const element = document.getElementById('itinerary-container');
     const opt = {
       margin: 10,
@@ -104,7 +105,6 @@ function App() {
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
     html2pdf().set(opt).from(element).save();
-    */
   };
 
   return (
@@ -180,23 +180,28 @@ function App() {
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Quand ?</label>
                 <div className="flex items-center bg-slate-50 rounded-xl p-1 shadow-sm border border-slate-100">
                   <input
-                    type="text"
+                    type={inputTypeDepart}
                     placeholder="Départ"
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => (e.target.type = 'text')}
+                    onFocus={() => setInputTypeDepart('date')}
+                    onBlur={(e) => {
+                      if (!e.target.value) setInputTypeDepart('text');
+                    }}
                     value={dates.depart}
                     onChange={(e) => setDates({ ...dates, depart: e.target.value })}
                     className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
                   />
                   <span className="text-slate-300">|</span>
                   <input
-                    type="text"
+                    type={inputTypeRetour}
                     placeholder="Retour"
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => (e.target.type = 'text')}
+                    onFocus={() => setInputTypeRetour('date')}
+                    onBlur={(e) => {
+                      if (!e.target.value) setInputTypeRetour('text');
+                    }}
                     value={dates.retour}
                     onChange={(e) => setDates({ ...dates, retour: e.target.value })}
                     className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
+
                   />
                 </div>
               </div>
