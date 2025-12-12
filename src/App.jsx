@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import './App.css';
-import { genererVoyage as genererVoyageAPI } from '../API/proxy';
+import { genererVoyage as genererVoyageAPI, regenererItineraire } from '../API/proxy';
 import html2pdf from 'html2pdf.js';
+import ItineraryBuilder from './components/ItineraryBuilder';
+import EmergencyButton from './components/EmergencyButton';
 
 
 const VACATION_STYLES = [
@@ -12,6 +14,14 @@ const VACATION_STYLES = [
   { value: "Shopping et ville", label: "Shopping", icon: "🛍️" },
   { value: "Romantique", label: "Romantique", icon: "💕" },
   { value: "Famille", label: "Famille", icon: "👨‍👩‍👧‍👦" }
+];
+
+const VIBES_NICHE = [
+  { value: "Digital Nomad", label: "Digital Nomad (WiFi)", icon: "💻" },
+  { value: "Pet Friendly", label: "Pet Friendly", icon: "🐶" },
+  { value: "Accessibilité PMR", label: "Accessibilité PMR", icon: "♿" },
+  { value: "Nature & Déconnexion", label: "Nature & Déconnexion", icon: "🌲" },
+  { value: "Vie Nocturne", label: "Vie Nocturne", icon: "🍸" }
 ];
 
 const DIETARY_OPTIONS = [
@@ -38,6 +48,7 @@ function App() {
   const [budgetIndex, setBudgetIndex] = useState(1); // Default to Moyen (index 1)
   const [duree, setDuree] = useState('');
   const [styles, setStyles] = useState([]);
+  const [vibes, setVibes] = useState([]); // New state for Vibes
   const [diets, setDiets] = useState([]);
   const [adultes, setAdultes] = useState(1);
   const [enfants, setEnfants] = useState(0);
@@ -65,25 +76,25 @@ function App() {
 
     try {
       // APPEL VIA LE PROXY (FRONTEND)
-      const data = await genererVoyageAPI({ depart, destination, budget, duree, style: styles.join(', '), diet: diets.join(', '), adultes, enfants, animaux, dates });
+      // Added vibes to params
+      const data = await genererVoyageAPI({ depart, destination, budget, duree, style: styles.join(', '), diet: diets.join(', '), adultes, enfants, animaux, dates, vibes });
 
       try {
-        let cleanText = data.itineraire;
-        cleanText = cleanText.replace(/```json/g, "").replace(/```/g, "").trim();
-
-        const firstBrace = cleanText.indexOf('{');
-        const lastBrace = cleanText.lastIndexOf('}');
-
-        if (firstBrace !== -1 && lastBrace !== -1) {
-          cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+        // The API now returns a parsed JSON object directly, no need to parse again.
+        if (data && typeof data === 'object') {
+          setResultat(data);
+        } else {
+          // Fallback if somehow we got a string (legacy behavior)
+          let cleanText = typeof data === 'string' ? data : JSON.stringify(data);
+          cleanText = cleanText.replace(/```json/g, "").replace(/```/g, "").trim();
+          const parsedItineraire = JSON.parse(cleanText);
+          setResultat(parsedItineraire);
         }
-
-        const parsedItineraire = JSON.parse(cleanText);
-        setResultat(parsedItineraire);
       } catch (parseError) {
         console.error("Erreur de parsing JSON:", parseError);
         setError("Erreur format de données reçu");
-        setResultat({ error: "Format inattendu", raw: data.itineraire });
+        // Ensure 'raw' is a string to avoid React "Objects are not valid" error
+        setResultat({ error: "Format inattendu", raw: JSON.stringify(data, null, 2) });
       }
 
     } catch (error) {
@@ -91,6 +102,30 @@ function App() {
       setError(`❌ Erreur technique : ${error.message || "Erreur inconnue"}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEmergency = async (context) => {
+    if (!resultat) return;
+    try {
+      const update = await regenererItineraire({ destination, style: styles.join(', ') }, context);
+      if (update && update.itineraire_modifie) {
+        // Merge or replace logic. For simplicity, we alert the user and show the new suggestion in a raw way or replace part of the state?
+        // Let's replace the activities in the visualization if possible, or just append a "Modified Day".
+        // For this MVP, let's prepend the new day/suggestion or showing it as a special alert.
+        alert(`🚨 ${update.message_ia || "Plan mis à jour !"}`);
+        // Simple merge: Replace the first day or append. 
+        // Let's replace result for visual feedback of change
+        const newResult = { ...resultat };
+        // Naive replace of day 1 
+        if (newResult.itineraire && newResult.itineraire[0]) {
+          newResult.itineraire[0] = update.itineraire_modifie[0];
+        }
+        setResultat(newResult);
+      }
+    } catch (e) {
+      alert("Erreur lors de la régénération d'urgence.");
+      console.error(e);
     }
   };
 
@@ -262,6 +297,35 @@ function App() {
               </div>
             </div>
 
+            {/* VIBES / NICHE FILTERS */}
+            <div className="space-y-3">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Ambiance & Besoins (Compagnon de Voyage)</label>
+              <div className="flex flex-wrap gap-2">
+                {VIBES_NICHE.map((vibe) => {
+                  const isSelected = vibes.includes(vibe.value);
+                  return (
+                    <div
+                      key={vibe.value}
+                      onClick={() => {
+                        if (isSelected) {
+                          setVibes(vibes.filter(v => v !== vibe.value));
+                        } else {
+                          setVibes([...vibes, vibe.value]);
+                        }
+                      }}
+                      className={`cursor-pointer rounded-full px-4 py-2 text-xs font-bold transition flex items-center gap-2 border shadow-sm
+                                        ${isSelected
+                          ? 'bg-purple-100 text-purple-700 border-purple-200'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
+                        }`}
+                    >
+                      <span>{vibe.icon}</span> {vibe.label}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Diets */}
             <div className="space-y-3">
               <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Régime Alimentaire</label>
@@ -396,8 +460,8 @@ function App() {
             </div>
           </div>
         ) : (
-          // Results Display (Reusing current card logic but wrapping in padding)
-          <div className="p-8 space-y-8 min-h-full">
+          // Results Display
+          <div className="p-8 space-y-8 min-h-full pb-24">
             {resultat.error ? (
               <div className="bg-white p-6 rounded-xl shadow-sm border border-red-100">
                 <h3 className="text-xl font-bold text-red-600 mb-2">⚠️ Problème d'affichage</h3>
@@ -419,16 +483,10 @@ function App() {
                   </div>
                 </div>
 
-                {/* Map */}
-                <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
-                  <iframe
-                    width="100%"
-                    height="350"
-                    frameBorder="0"
-                    scrolling="no"
-                    src={`https://maps.google.com/maps?q=${encodeURIComponent(resultat.destination)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
-                  ></iframe>
-                </div>
+                {/* --- NEW INTERACTIVE ITINERARY (Map + D&D) --- */}
+                <ItineraryBuilder itinerary={resultat} onUpdate={setResultat} />
+
+
 
                 {/* Transports */}
                 {resultat.transports?.length > 0 && (
@@ -445,34 +503,13 @@ function App() {
                           </div>
                           <div className="text-right">
                             <div className="text-green-600 font-bold text-xl">{t.prix}</div>
-                            {t.lien && <a href={t.lien} target="_blank" className="text-xs text-indigo-500 hover:underline">Voir le billet</a>}
+                            {t.lien && <a href={t.lien} target="_blank" className="text-xs text-indigo-500 hover:underline cursor-pointer">Voir le billet</a>}
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* Itinerary */}
-                <div>
-                  <h3 className="text-2xl font-serif font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <span className="bg-indigo-100 p-2 rounded-lg text-xl">🗺️</span> Itinéraire
-                  </h3>
-                  <div className="space-y-6">
-                    {resultat.itineraire.map((jour, i) => (
-                      <div key={i} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="bg-slate-50 px-6 py-4 font-bold text-indigo-900 border-b border-slate-100">
-                          {jour.jour}
-                        </div>
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div><span className="text-xs font-bold uppercase text-indigo-400 block mb-2">Matin</span>{jour.matin}</div>
-                          <div><span className="text-xs font-bold uppercase text-indigo-400 block mb-2">Midi</span>{jour.apres_midi}</div>
-                          <div><span className="text-xs font-bold uppercase text-indigo-400 block mb-2">Soir</span>{jour.soir}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
                 {/* Hotels & Activities (Grid) */}
                 {[
@@ -503,7 +540,7 @@ function App() {
                             <h4 className="font-bold text-lg text-slate-800 mb-1">{item.nom}</h4>
                             <p className="text-sm text-slate-500 mb-3">{item.emplacement || item.type || item.description}</p>
                             {item.lien && (
-                              <a href={item.lien} target="_blank" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                              <a href={item.lien} target="_blank" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer">
                                 En savoir plus <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                               </a>
                             )}
@@ -514,12 +551,18 @@ function App() {
                   </div>
                 ))}
 
-                <button
-                  onClick={handleDownloadPDF}
-                  className="w-full py-4 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 transition flex items-center justify-center gap-2"
-                >
-                  <i className="fa-solid fa-download"></i> Télécharger le PDF
-                </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start pt-6 border-t border-slate-100">
+                  {/* Emergency Button & Text */}
+                  <EmergencyButton onEmergency={handleEmergency} />
+
+                  {/* PDF Button */}
+                  <button
+                    onClick={handleDownloadPDF}
+                    className="w-full py-4 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 transition flex items-center justify-center gap-2"
+                  >
+                    <i className="fa-solid fa-download"></i> Télécharger le PDF
+                  </button>
+                </div>
 
               </div>
             )}
