@@ -51,9 +51,7 @@ function RecenterMap({ center }) {
     return null;
 }
 
-const ItineraryBuilder = ({ itinerary, onUpdate }) => {
-    const [activeDayIndex, setActiveDayIndex] = useState(0);
-
+const ItineraryBuilder = ({ itinerary, onUpdate, activeDayIndex, setActiveDayIndex }) => {
     // Helper to get days array safely
     const getDays = () => {
         if (!itinerary || !itinerary.itineraire || !Array.isArray(itinerary.itineraire)) return [];

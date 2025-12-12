@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const EmergencyButton = ({ onEmergency }) => {
     const [isOpen, setIsOpen] = useState(false);

@@ -46,7 +46,7 @@ function App() {
   const [depart, setDepart] = useState('');
   const [destination, setDestination] = useState('');
   const [budgetIndex, setBudgetIndex] = useState(1); // Default to Moyen (index 1)
-  const [duree, setDuree] = useState('');
+  // const [duree, setDuree] = useState(''); // Removed as per user request
   const [styles, setStyles] = useState([]);
   const [vibes, setVibes] = useState([]); // New state for Vibes
   const [diets, setDiets] = useState([]);
@@ -61,23 +61,28 @@ function App() {
   const [inputTypeDepart, setInputTypeDepart] = useState('text');
   const [inputTypeRetour, setInputTypeRetour] = useState('text');
 
+  // Lifted state for the active day in the itinerary builder
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
+
   const genererVoyage = async () => {
     // Determine actual budget string from index
     const budget = BUDGET_MAPPING[budgetIndex].value;
 
-    if (!destination || !budget || !duree || styles.length === 0) {
-      alert("Remplis tous les champs !");
+    // Check dates instead of duration (validation)
+    if (!destination || !budget || styles.length === 0 || !dates.depart || !dates.retour) {
+      alert("Remplis tous les champs, notamment les dates !");
       return;
     }
 
     setLoading(true);
     setResultat(null);
     setError('');
+    setActiveDayIndex(0); // Reset to first day on new generation
 
     try {
       // APPEL VIA LE PROXY (FRONTEND)
-      // Added vibes to params
-      const data = await genererVoyageAPI({ depart, destination, budget, duree, style: styles.join(', '), diet: diets.join(', '), adultes, enfants, animaux, dates, vibes });
+      // Removed duree from params, relying on dates
+      const data = await genererVoyageAPI({ depart, destination, budget, style: styles.join(', '), diet: diets.join(', '), adultes, enfants, animaux, dates, vibes });
 
       try {
         // The API now returns a parsed JSON object directly, no need to parse again.
@@ -107,21 +112,36 @@ function App() {
 
   const handleEmergency = async (context) => {
     if (!resultat) return;
+
+    // Get the current day from state to provide better context to AI
+    const currentDay = resultat.itineraire && resultat.itineraire[activeDayIndex]
+      ? resultat.itineraire[activeDayIndex]
+      : { jour: `Jour ${activeDayIndex + 1}` };
+
+    const enrichedContext = `${context}. (Concerne le ${currentDay.jour})`;
+
     try {
-      const update = await regenererItineraire({ destination, style: styles.join(', ') }, context);
+      const update = await regenererItineraire({ destination, style: styles.join(', ') }, enrichedContext);
       if (update && update.itineraire_modifie) {
-        // Merge or replace logic. For simplicity, we alert the user and show the new suggestion in a raw way or replace part of the state?
-        // Let's replace the activities in the visualization if possible, or just append a "Modified Day".
-        // For this MVP, let's prepend the new day/suggestion or showing it as a special alert.
-        alert(`🚨 ${update.message_ia || "Plan mis à jour !"}`);
-        // Simple merge: Replace the first day or append. 
-        // Let's replace result for visual feedback of change
+
         const newResult = { ...resultat };
-        // Naive replace of day 1 
-        if (newResult.itineraire && newResult.itineraire[0]) {
-          newResult.itineraire[0] = update.itineraire_modifie[0];
+        // Update the SPECIFIC day that is currently active
+        // The AI might return an array with 1 element representing the modified day.
+        if (newResult.itineraire && newResult.itineraire[activeDayIndex]) {
+          // We replace the steps of the active day with the new suggestions
+          // Assuming update.itineraire_modifie is an array where the first element is the modified day
+          const modifiedDay = update.itineraire_modifie[0];
+          if (modifiedDay) {
+            newResult.itineraire[activeDayIndex] = {
+              ...newResult.itineraire[activeDayIndex], // Keep original day props if needed
+              etapes: modifiedDay.etapes, // Replace steps
+              jour: modifiedDay.jour || newResult.itineraire[activeDayIndex].jour,
+              matin: undefined, midi: undefined, soir: undefined // Clear legacy fields to force use of etapes
+            };
+          }
         }
         setResultat(newResult);
+        alert(`🚨 ${update.message_ia || "Plan mis à jour pour ce jour !"}`);
       }
     } catch (e) {
       alert("Erreur lors de la régénération d'urgence.");
@@ -189,56 +209,34 @@ function App() {
               </div>
             </div>
 
-            {/* Dates & Durée */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Durée</label>
-                <div className="relative">
-                  <select
-                    value={duree}
-                    onChange={(e) => setDuree(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition shadow-sm font-medium text-slate-700 appearance-none"
-                  >
-                    <option value="">Durée ?</option>
-                    <option value="Week-end (2-3 jours)">Week-end</option>
-                    <option value="1 semaine">1 semaine</option>
-                    <option value="2 semaines">2 semaines</option>
-                    <option value="3 semaines">3 semaines+</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700">
-                    <i className="fa-solid fa-chevron-down text-xs"></i>
-                  </div>
-                </div>
-              </div>
+            {/* Dates REQUIRED */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Quand ? (Dates requises)</label>
+              <div className="flex items-center bg-slate-50 rounded-xl p-1 shadow-sm border border-slate-100">
+                <input
+                  type={inputTypeDepart}
+                  placeholder="Départ"
+                  onFocus={() => setInputTypeDepart('date')}
+                  onBlur={(e) => {
+                    if (!e.target.value) setInputTypeDepart('text');
+                  }}
+                  value={dates.depart}
+                  onChange={(e) => setDates({ ...dates, depart: e.target.value })}
+                  className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
+                />
+                <span className="text-slate-300">|</span>
+                <input
+                  type={inputTypeRetour}
+                  placeholder="Retour"
+                  onFocus={() => setInputTypeRetour('date')}
+                  onBlur={(e) => {
+                    if (!e.target.value) setInputTypeRetour('text');
+                  }}
+                  value={dates.retour}
+                  onChange={(e) => setDates({ ...dates, retour: e.target.value })}
+                  className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
 
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Quand ?</label>
-                <div className="flex items-center bg-slate-50 rounded-xl p-1 shadow-sm border border-slate-100">
-                  <input
-                    type={inputTypeDepart}
-                    placeholder="Départ"
-                    onFocus={() => setInputTypeDepart('date')}
-                    onBlur={(e) => {
-                      if (!e.target.value) setInputTypeDepart('text');
-                    }}
-                    value={dates.depart}
-                    onChange={(e) => setDates({ ...dates, depart: e.target.value })}
-                    className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
-                  />
-                  <span className="text-slate-300">|</span>
-                  <input
-                    type={inputTypeRetour}
-                    placeholder="Retour"
-                    onFocus={() => setInputTypeRetour('date')}
-                    onBlur={(e) => {
-                      if (!e.target.value) setInputTypeRetour('text');
-                    }}
-                    value={dates.retour}
-                    onChange={(e) => setDates({ ...dates, retour: e.target.value })}
-                    className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
-
-                  />
-                </div>
+                />
               </div>
             </div>
 
@@ -484,7 +482,12 @@ function App() {
                 </div>
 
                 {/* --- NEW INTERACTIVE ITINERARY (Map + D&D) --- */}
-                <ItineraryBuilder itinerary={resultat} onUpdate={setResultat} />
+                <ItineraryBuilder
+                  itinerary={resultat}
+                  onUpdate={setResultat}
+                  activeDayIndex={activeDayIndex}
+                  setActiveDayIndex={setActiveDayIndex}
+                />
 
 
 
