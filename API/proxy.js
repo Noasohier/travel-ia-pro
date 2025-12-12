@@ -54,6 +54,11 @@ Structure JSON attendue(STRICT) :
 {
   "destination": "string",
     "budget_total_estime": "string",
+  "formalites": {
+    "documents_obligatoires": ["string (ex: Passeport valide 6 mois)", "string (ex: Visa)"],
+    "vaccins": ["string (ou 'Aucun')"],
+    "lien_gouvernement": "string (URL officielle pour les visas/infos)"
+  },
       "transports": [
         { "type": "string", "compagnie": "string", "prix": "string", "lien": "string" }
       ],
