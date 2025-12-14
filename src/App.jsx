@@ -172,9 +172,9 @@ function App() {
           <div className="mb-10 text-center lg:text-left">
             <div className="flex items-center justify-center lg:justify-start gap-2 mb-2">
               <i className="fa-solid fa-earth-americas text-3xl text-indigo-600"></i>
-              <h1 className="text-3xl font-bold text-slate-900">Travel AI Pro</h1>
+              <h1 className="text-3xl font-bold text-slate-900">VELIA</h1>
             </div>
-            <p className="text-slate-500 text-sm">Laissez l'intelligence artificielle dessiner votre prochaine évasion.</p>
+            <p className="text-slate-500 text-sm">Velia, l'évasion instantanée.</p>
           </div>
 
           <div className="space-y-8">
@@ -438,7 +438,7 @@ function App() {
 
           </div>
 
-          <p className="mt-6 text-center text-xs text-slate-400">Powered by Advanced AI • © 2025 Travel AI Pro</p>
+          <p className="mt-6 text-center text-xs text-slate-400">Powered by Advanced AI • © 2025 VELIA</p>
         </div>
       </div>
 

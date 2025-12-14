@@ -19,7 +19,7 @@ export const genererVoyage = async (params) => {
     }
   }
 
-  const prompt = `Tu es une IA experte en voyage "Travel AI Pro".Réponds UNIQUEMENT au format JSON strict.
+  const prompt = `Tu es une IA experte en voyage "VELIA".Réponds UNIQUEMENT au format JSON strict.
 Aucun texte en dehors du JSON.Aucune phrase d'introduction.
 
 Paramètres utilisateur:
