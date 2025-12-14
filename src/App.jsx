@@ -175,12 +175,17 @@ function App() {
       <div className="w-full lg:w-1/2 h-auto lg:h-full lg:overflow-y-auto custom-scrollbar bg-white relative z-10 flex flex-col shadow-xl lg:shadow-none">
         <div className="max-w-xl mx-auto px-8 py-12 w-full">
 
-          <div className="mb-10 text-center lg:text-left">
-            <div className="flex items-center justify-center lg:justify-start gap-2 mb-2">
-              <i className="fa-solid fa-earth-americas text-3xl text-indigo-600"></i>
-              <h1 className="text-3xl font-bold text-slate-900">VELIA</h1>
+          <div className="mb-8 text-center lg:text-left">
+            <div className="flex items-center justify-center lg:justify-start gap-3 mb-2">
+              <div className="flex items-center">
+                <div className="h-10 w-10 bg-gradient-to-br from-indigo-800 to-[#FF7F50] rounded-lg flex items-center justify-center text-white font-bold text-xl mr-3 font-serif">V</div>
+                <div>
+                  <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 tracking-wide">VELIA</h1>
+                  <p className="text-indigo-600 text-xs font-bold uppercase tracking-widest -mt-1">Évasions Intelligentes</p>
+                </div>
+              </div>
             </div>
-            <p className="text-slate-500 text-sm">Velia, l'évasion instantanée.</p>
+            <p className="text-slate-500 text-xs lg:text-sm mt-4">Configurez votre voyage de rêve en 3 clics.</p>
           </div>
 
           <div className="space-y-8">
@@ -223,10 +228,12 @@ function App() {
                   <span className="absolute top-1 left-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider pointer-events-none">Départ</span>
                   <input
                     type="date"
+                    id="date-depart"
                     min={new Date().toISOString().split('T')[0]}
                     value={dates.depart}
                     onChange={(e) => setDates({ ...dates, depart: e.target.value })}
-                    className="w-full bg-transparent border-none pt-5 pb-1 px-3 text-sm focus:ring-0 text-slate-700 font-medium"
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                    className="w-full bg-transparent border-none pt-5 pb-1 px-3 text-sm focus:ring-0 text-slate-700 font-medium cursor-pointer relative z-10"
                   />
                 </div>
                 <span className="text-slate-300">|</span>
@@ -234,10 +241,12 @@ function App() {
                   <span className="absolute top-1 left-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider pointer-events-none">Retour</span>
                   <input
                     type="date"
+                    id="date-retour"
                     min={dates.depart || new Date().toISOString().split('T')[0]}
                     value={dates.retour}
                     onChange={(e) => setDates({ ...dates, retour: e.target.value })}
-                    className="w-full bg-transparent border-none pt-5 pb-1 px-3 text-sm focus:ring-0 text-slate-700 font-medium"
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                    className="w-full bg-transparent border-none pt-5 pb-1 px-3 text-sm focus:ring-0 text-slate-700 font-medium cursor-pointer relative z-10"
                   />
                 </div>
               </div>
