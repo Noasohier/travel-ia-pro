@@ -163,10 +163,10 @@ function App() {
   };
 
   return (
-    // No .app-wrapper anymore, using user's body flex layout
-    <>
+    // Responsive Wrapper: Stacked on Mobile (h-screen + scroll), Side-by-Side on Desktop (h-screen + no-scroll)
+    <div className="bg-slate-50 text-slate-800 h-screen w-full flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden font-sans">
       {/* Left Panel: Form */}
-      <div className="w-full lg:w-1/2 h-full overflow-y-auto custom-scrollbar bg-white relative z-10 flex flex-col">
+      <div className="w-full lg:w-1/2 h-auto lg:h-full lg:overflow-y-auto custom-scrollbar bg-white relative z-10 flex flex-col shadow-xl lg:shadow-none">
         <div className="max-w-xl mx-auto px-8 py-12 w-full">
 
           <div className="mb-10 text-center lg:text-left">
@@ -443,18 +443,21 @@ function App() {
       </div>
 
       {/* Right Panel: Results or Image */}
-      <div className="hidden lg:block w-1/2 relative bg-slate-100 overflow-y-auto custom-scrollbar">
+      {/* Visible on Mobile now (stacked at bottom), Fixed height for image on mobile, Auto for results */}
+      <div className={`w-full lg:w-1/2 relative bg-slate-100 lg:overflow-y-auto custom-scrollbar
+                      ${!resultat ? 'h-[500px] lg:h-full' : 'h-auto lg:h-full min-h-[500px]'}
+                    `}>
         {!resultat ? (
           // Placeholder Image
           <div className="h-full w-full relative">
             <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop" alt="Travel Background" className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-            <div className="absolute bottom-16 left-12 right-12 text-white">
+            <div className="absolute bottom-8 left-6 right-6 lg:bottom-16 lg:left-12 lg:right-12 text-white">
               <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-medium mb-4 border border-white/30">
                 ✨ Nouvelle version disponible
               </div>
-              <h2 className="text-5xl font-serif mb-4 leading-tight">Le monde est grand.<br />Explorez-le mieux.</h2>
-              <p className="text-lg text-slate-200 font-light max-w-md">Notre IA analyse des milliers d'itinéraires pour créer le voyage parfait, adapté à votre rythme et vos envies.</p>
+              <h2 className="text-3xl lg:text-5xl font-serif mb-4 leading-tight">Le monde est grand.<br />Explorez-le mieux.</h2>
+              <p className="text-sm lg:text-lg text-slate-200 font-light max-w-md">Notre IA analyse des milliers d'itinéraires pour créer le voyage parfait, adapté à votre rythme et vos envies.</p>
             </div>
           </div>
         ) : (
@@ -572,7 +575,7 @@ function App() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 

@@ -131,43 +131,77 @@ Structure JSON attendue (Partielle ou Complète, mais VALIDE) :
 
 async function callOpenRouter(prompt) {
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENROUTER_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:5173",
-        "X-Title": "Travel Generator"
-      },
-      body: JSON.stringify({
-        model: "mistralai/devstral-2512:free", // Ou un modèle plus performant si dispo
-        messages: [
-          { role: "user", content: prompt }
-        ]
-      })
-    });
+    const MODELS_TO_TRY = [
+      "google/gemini-2.0-flash-exp:free", // Primary: Fast & Smart
+      "mistralai/mistral-7b-instruct:free", // Backup 1: Reliable
+      "meta-llama/llama-3-8b-instruct:free", // Backup 2: Popular
+      "microsoft/phi-3-medium-128k-instruct:free" // Backup 3: Lightweight
+    ];
 
-    if (!response.ok) {
-      throw new Error(`Erreur HTTP: ${response.status}`);
+    let lastError;
+
+    for (const model of MODELS_TO_TRY) {
+      try {
+        console.log(`🤖 Tentative avec le modèle : ${model}...`);
+
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:5173",
+            "X-Title": "Travel Generator"
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: "user", content: prompt }
+            ]
+          })
+        });
+
+        if (response.status === 429) {
+          console.warn(`⚠️ Rate limit (429) sur ${model}. Passage au suivant...`);
+          // Wait briefly before trying the next model
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue; // Try next model
+        }
+
+        if (!response.ok) {
+          console.warn(`⚠️ Erreur HTTP ${response.status} sur ${model}. Passage au suivant...`);
+          continue;
+        }
+
+        const data = await response.json();
+        if (!data || !data.choices || !data.choices.length) {
+          console.warn(`⚠️ Réponse vide sur ${model}. Passage au suivant...`);
+          continue;
+        }
+
+        const texte = data.choices[0].message.content;
+
+        // Validation & Cleaning
+        let cleanText = texte.replace(/```json/g, "").replace(/```/g, "").trim();
+        const firstBrace = cleanText.indexOf('{');
+        const lastBrace = cleanText.lastIndexOf('}');
+
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+          return JSON.parse(cleanText); // SUCCESS: Return parsed JSON
+        } else {
+          console.warn(`⚠️ Format JSON invalide sur ${model}. Passage au suivant...`);
+          continue;
+        }
+
+      } catch (e) {
+        console.error(`❌ Erreur technique sur ${model}:`, e);
+        lastError = e;
+        // Continue to next model
+      }
     }
 
-    const data = await response.json();
-
-    if (!data || !data.choices || !data.choices.length) {
-      throw new Error("Structure de réponse invalide ou vide de l'IA.");
-    }
-
-    const texte = data.choices[0].message.content;
-
-    // Nettoyage basique du Markdown JSON si présent
-    let cleanText = texte.replace(/```json/g, "").replace(/```/g, "").trim();
-    const firstBrace = cleanText.indexOf('{');
-    const lastBrace = cleanText.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      cleanText = cleanText.substring(firstBrace, lastBrace + 1);
-    }
-
-    return JSON.parse(cleanText);
+    // If we get here, all models failed
+    throw new Error(`Tous les modèles ont échoué. Dernier erreur: ${lastError?.message || 'Rate limit'}`);
 
   } catch (error) {
     console.error("❌ Erreur OpenRouter:", error);
