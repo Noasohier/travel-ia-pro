@@ -63,13 +63,13 @@ Structure JSON attendue(STRICT) :
         { "type": "string", "compagnie": "string", "prix": "string", "lien": "string" }
       ],
         "hotels": [
-          { "nom": "string", "prix_par_nuit": "string", "emplacement": "string", "lien": "string", "image_prompt": "string", "coordinates": { "lat": number, "lng": number } }
+          { "nom": "string", "prix_par_nuit": "string", "emplacement": "string", "lien": "string", "coordinates": { "lat": number, "lng": number } }
         ],
           "restaurants": [
-            { "nom": "string", "type": "string", "prix_moyen": "string", "lien": "string", "image_prompt": "string", "coordinates": { "lat": number, "lng": number } }
+            { "nom": "string", "type": "string", "prix_moyen": "string", "lien": "string", "coordinates": { "lat": number, "lng": number } }
           ],
             "activites": [
-              { "nom": "string", "prix": "string", "description": "string", "lien": "string", "image_prompt": "string", "coordinates": { "lat": number, "lng": number }, "id": "string (unique)" }
+              { "nom": "string", "prix": "string", "description": "string", "lien": "string", "coordinates": { "lat": number, "lng": number }, "id": "string (unique)" }
             ],
               "itineraire": [
                 {

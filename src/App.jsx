@@ -162,6 +162,13 @@ function App() {
     html2pdf().set(opt).from(element).save();
   };
 
+  // Helper for generating consistent, high-quality image URLs
+  const getImageUrl = (item, type, locationName) => {
+    // Combine item Name + Destination + Type + Keywords for best results
+    const query = `${item.nom} ${locationName} ${type} aesthetic travel photography high resolution`;
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?width=800&height=600&nologo=true`;
+  };
+
   return (
     // Responsive Wrapper: Stacked on Mobile (h-screen + scroll), Side-by-Side on Desktop (h-screen + no-scroll)
     <div className="bg-slate-50 text-slate-800 h-screen w-full flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden font-sans">
@@ -530,18 +537,21 @@ function App() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       {section.data.map((item, i) => (
                         <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md transition group">
-                          {item.image_prompt && (
-                            <div className="h-48 overflow-hidden relative">
-                              <img
-                                src={`https://image.pollinations.ai/prompt/${encodeURIComponent(item.image_prompt)}`}
-                                className="w-full h-full object-cover transform group-hover:scale-105 transition duration-500"
-                                alt={item.nom}
-                              />
-                              <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded-md shadow-sm">
-                                {item.prix_par_nuit || item.prix_moyen || item.prix}
-                              </div>
+                          <div className="h-48 overflow-hidden relative">
+                            <img
+                              src={getImageUrl(item, section.title, resultat.destination)}
+                              className="w-full h-full object-cover transform group-hover:scale-105 transition duration-500"
+                              alt={item.nom}
+                              onError={(e) => {
+                                e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80"; // Fallback
+                              }}
+                              loading="lazy"
+                            />
+                            <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded-md shadow-sm">
+                              {item.prix_par_nuit || item.prix_moyen || item.prix}
                             </div>
-                          )}
+                          </div>
+
                           <div className="p-5">
                             <h4 className="font-bold text-lg text-slate-800 mb-1">{item.nom}</h4>
                             <p className="text-sm text-slate-500 mb-3">{item.emplacement || item.type || item.description}</p>
