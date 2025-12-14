@@ -58,8 +58,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [inputTypeDepart, setInputTypeDepart] = useState('text');
-  const [inputTypeRetour, setInputTypeRetour] = useState('text');
+
 
   // Lifted state for the active day in the itinerary builder
   const [activeDayIndex, setActiveDayIndex] = useState(0);
@@ -219,31 +218,28 @@ function App() {
             {/* Dates REQUIRED */}
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Quand ? (Dates requises)</label>
-              <div className="flex items-center bg-slate-50 rounded-xl p-1 shadow-sm border border-slate-100">
-                <input
-                  type={inputTypeDepart}
-                  placeholder="Départ"
-                  onFocus={() => setInputTypeDepart('date')}
-                  onBlur={(e) => {
-                    if (!e.target.value) setInputTypeDepart('text');
-                  }}
-                  value={dates.depart}
-                  onChange={(e) => setDates({ ...dates, depart: e.target.value })}
-                  className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
-                />
+              <div className="flex items-center bg-slate-50 rounded-xl p-1 shadow-sm border border-slate-100 relative">
+                <div className="relative w-1/2">
+                  <span className="absolute top-1 left-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider pointer-events-none">Départ</span>
+                  <input
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    value={dates.depart}
+                    onChange={(e) => setDates({ ...dates, depart: e.target.value })}
+                    className="w-full bg-transparent border-none pt-5 pb-1 px-3 text-sm focus:ring-0 text-slate-700 font-medium"
+                  />
+                </div>
                 <span className="text-slate-300">|</span>
-                <input
-                  type={inputTypeRetour}
-                  placeholder="Retour"
-                  onFocus={() => setInputTypeRetour('date')}
-                  onBlur={(e) => {
-                    if (!e.target.value) setInputTypeRetour('text');
-                  }}
-                  value={dates.retour}
-                  onChange={(e) => setDates({ ...dates, retour: e.target.value })}
-                  className="w-1/2 bg-transparent border-none py-2 px-3 text-sm focus:ring-0 text-slate-700 placeholder-slate-400"
-
-                />
+                <div className="relative w-1/2">
+                  <span className="absolute top-1 left-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider pointer-events-none">Retour</span>
+                  <input
+                    type="date"
+                    min={dates.depart || new Date().toISOString().split('T')[0]}
+                    value={dates.retour}
+                    onChange={(e) => setDates({ ...dates, retour: e.target.value })}
+                    className="w-full bg-transparent border-none pt-5 pb-1 px-3 text-sm focus:ring-0 text-slate-700 font-medium"
+                  />
+                </div>
               </div>
             </div>
 
