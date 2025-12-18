@@ -2,6 +2,8 @@ import { getTrips, deleteTrip } from "../actions";
 import Link from 'next/link';
 import { UserButton } from "@clerk/nextjs";
 
+export const dynamic = 'force-dynamic';
+
 const getCoverImage = (destination: string) => {
     const query = `${destination} travel landscape aesthetic high resolution wallpaper`;
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?width=400&height=200&nologo=true`;

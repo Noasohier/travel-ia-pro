@@ -1,0 +1,155 @@
+{
+  "node": {
+    "7fd1e0bd57eb2ed0e95a70a0286c3e5a752e6b39df": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "detectKeylessEnvDriftAction",
+          "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "detectKeylessEnvDriftAction",
+      "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+    },
+    "7f2c0ebc90fd5ec9b92b159ff09b0099247b5ea41d": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "invalidateCacheAction",
+          "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/server-actions.js"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "exportedName": "invalidateCacheAction",
+      "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/server-actions.js"
+    },
+    "7f7142aac1f773b029fff2e9a3fa3ef3edc9b34673": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "createOrReadKeylessAction",
+          "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "createOrReadKeylessAction",
+      "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+    },
+    "7f315e1a761393951967292c26e538ccb5c9773ba8": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "formatMetadataHeaders",
+          "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/server/keyless-custom-headers.js"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "formatMetadataHeaders",
+      "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/server/keyless-custom-headers.js"
+    },
+    "7f61115a14a0c2c7d9c10ecdb58f4f8f47339cdf03": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "collectKeylessMetadata",
+          "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/server/keyless-custom-headers.js"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "collectKeylessMetadata",
+      "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/server/keyless-custom-headers.js"
+    },
+    "7f0dd359250b3f2d507f436ce14ec5e75130a17a6b": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "syncKeylessConfigAction",
+          "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "exportedName": "syncKeylessConfigAction",
+      "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+    },
+    "7fa18068bd2cc59494f692e51d964b82a274da0395": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "deleteKeylessAction",
+          "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "exportedName": "deleteKeylessAction",
+      "filename": "velia-next/node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+    },
+    "40326cbb478a59c0acbbce3edc3c2391643547a471": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "generateTrip",
+          "filename": "velia-next/app/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "exportedName": "generateTrip",
+      "filename": "velia-next/app/actions.ts"
+    },
+    "70ccd64c840fc4201baefdc289c9d39ebf40ac8f32": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "saveTrip",
+          "filename": "velia-next/app/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "exportedName": "saveTrip",
+      "filename": "velia-next/app/actions.ts"
+    },
+    "40b54362c01fc485ae9ef1d83d3f1bb6dad58a060f": {
+      "workers": {
+        "app/page": {
+          "moduleId": 87094,
+          "async": false,
+          "exportedName": "getTrip",
+          "filename": "velia-next/app/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "exportedName": "getTrip",
+      "filename": "velia-next/app/actions.ts"
+    }
+  },
+  "edge": {}
+}

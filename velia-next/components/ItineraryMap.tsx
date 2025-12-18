@@ -29,12 +29,14 @@ function RecenterMap({ center }: { center: [number, number] | null }) {
 
 export default function ItineraryMap({ center, steps }: { center: [number, number] | null, steps: any[] }) {
     return (
+        // @ts-ignore - React Leaflet v5 types mismatch with React 19
         <MapContainer
             center={center || [48.8566, 2.3522]}
             zoom={13}
             scrollWheelZoom={false}
             style={{ height: "100%", width: "100%" }}
         >
+            {/* @ts-ignore - React Leaflet v5 types mismatch with React 19 */}
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

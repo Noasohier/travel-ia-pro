@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useUser, UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import { generateTrip, saveTrip, getTrip } from './actions';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -51,7 +51,7 @@ const BUDGET_MAPPING = [
 ];
 
 
-export default function Home() {
+function TripGenerator() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -615,5 +615,13 @@ export default function Home() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>}>
+      <TripGenerator />
+    </Suspense>
   );
 }

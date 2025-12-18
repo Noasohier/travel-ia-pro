@@ -1,0 +1,3 @@
+module.exports=[42617,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(90018);a.n(d("[project]/velia-next/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},47789,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(90018);a.n(d("[project]/velia-next/node_modules/next/dist/client/components/builtin/global-error.js"))},48602,a=>{"use strict";a.i(42617);var b=a.i(47789);a.n(b)}];
+
+//# sourceMappingURL=0fb64_next_dist_client_components_builtin_global-error_b0271026.js.map
