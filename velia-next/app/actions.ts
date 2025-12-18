@@ -3,7 +3,10 @@
 import { PrismaClient } from '@prisma/client'
 import { auth } from '@clerk/nextjs/server'
 
-const prisma = new PrismaClient()
+// Only initialize Prisma if DATABASE_URL is not SQLite (file:) in production
+const prisma = process.env.DATABASE_URL?.startsWith('file:') && process.env.NODE_ENV === 'production'
+  ? null
+  : new PrismaClient();
 
 // --- AI GENERATION ---
 const OPENROUTER_KEY = process.env.OPENROUTER_KEY;
@@ -135,6 +138,7 @@ GENERE BIEN TOUS LES JOURS DEMANDÉS (${nombreJours}).
 export async function saveTrip(destination: string, tripData: any, requestParams: any = {}) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  if (!prisma) throw new Error("Database not available in production with SQLite");
 
   // Wrap content to include both result and params
   const contentToSave = {
@@ -154,6 +158,7 @@ export async function saveTrip(destination: string, tripData: any, requestParams
 export async function getTrips() {
   const { userId } = await auth();
   if (!userId) return []; // Return empty if not logged in
+  if (!prisma) return []; // Return empty if database not available
 
   const trips = await prisma.trip.findMany({
     where: { userId },
@@ -167,6 +172,7 @@ export async function getTrips() {
 export async function getTrip(id: string) {
   const { userId } = await auth();
   if (!userId) return null;
+  if (!prisma) return null; // Return null if database not available
 
   const trip = await prisma.trip.findUnique({
     where: { id }
@@ -180,6 +186,7 @@ export async function getTrip(id: string) {
 export async function deleteTrip(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  if (!prisma) throw new Error("Database not available in production with SQLite");
 
   return await prisma.trip.deleteMany({
     where: { id, userId } // Security: ensure user owns trip
