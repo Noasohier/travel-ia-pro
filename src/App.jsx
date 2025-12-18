@@ -13,7 +13,10 @@ const VACATION_STYLES = [
   { value: "Gastronomie", label: "Gastronomie", icon: "🍽️" },
   { value: "Shopping et ville", label: "Shopping", icon: "🛍️" },
   { value: "Romantique", label: "Romantique", icon: "💕" },
-  { value: "Famille", label: "Famille", icon: "👨‍👩‍👧‍👦" }
+  { value: "Famille", label: "Famille", icon: "👨‍👩‍👧‍👦" },
+  { value: "Sportif", label: "Sportif", icon: "🏃" },
+  { value: "Roadtrip Moto", label: "Roadtrip Moto", icon: "🏍️" },
+  { value: "Trekking", label: "Trekking", icon: "🥾" }
 ];
 
 const VIBES_NICHE = [
@@ -45,6 +48,7 @@ const BUDGET_MAPPING = [
 function App() {
   const [depart, setDepart] = useState('');
   const [destination, setDestination] = useState('');
+  const [rayon, setRayon] = useState(0); // Radius in km
   const [budgetIndex, setBudgetIndex] = useState(1); // Default to Moyen (index 1)
   // const [duree, setDuree] = useState(''); // Removed as per user request
   const [styles, setStyles] = useState([]);
@@ -81,7 +85,9 @@ function App() {
     try {
       // APPEL VIA LE PROXY (FRONTEND)
       // Removed duree from params, relying on dates
-      const data = await genererVoyageAPI({ depart, destination, budget, style: styles.join(', '), diet: diets.join(', '), adultes, enfants, animaux, dates, vibes });
+      // APPEL VIA LE PROXY (FRONTEND)
+      // Removed duree from params, relying on dates
+      const data = await genererVoyageAPI({ depart, destination, rayon, budget, style: styles.join(', '), diet: diets.join(', '), adultes, enfants, animaux, dates, vibes });
 
       try {
         // The API now returns a parsed JSON object directly, no need to parse again.
@@ -216,6 +222,25 @@ function App() {
                     onChange={(e) => setDestination(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-pink-500 transition shadow-sm placeholder-slate-400 font-medium"
                   />
+                  {/* Rayon Slider */}
+                  <div className="mt-2 px-1 flex items-center gap-3">
+                    <i className="fa-solid fa-circle-nodes text-slate-400 text-xs"></i>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="10"
+                      value={rayon}
+                      onChange={(e) => setRayon(parseInt(e.target.value))}
+                      className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                    />
+                    <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap min-w-[60px] text-right">
+                      {rayon === 0 ? "Ville" : `+ ${rayon} km`}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1 pl-1 italic">
+                    Explorez un large éventail d'activités à deux pas de la ville
+                  </p>
                 </div>
               </div>
             </div>
@@ -491,8 +516,20 @@ function App() {
                   <h2 className="text-3xl font-serif font-bold text-indigo-900 mb-2">
                     ✈️ Voyage à {resultat.destination}
                   </h2>
-                  <div className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full text-sm font-bold">
-                    Budget estimé : {resultat.budget_total_estime}
+                  <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
+                    <div className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full text-sm font-bold border border-green-200">
+                      Budget estimé : {resultat.budget_total_estime}
+                    </div>
+
+                    {resultat.meteo && (
+                      <div className="inline-flex items-center gap-3 bg-blue-50 text-blue-700 px-4 py-1 rounded-full text-sm font-medium border border-blue-100">
+                        <span className="text-xl">🌦️</span>
+                        <div className="flex flex-col leading-tight text-left">
+                          <span className="font-bold">{resultat.meteo.temp_min} - {resultat.meteo.temp_max} • {resultat.meteo.description}</span>
+                          <span className="text-[10px] opacity-80">{resultat.meteo.conseils}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -560,6 +597,15 @@ function App() {
                           <div className="p-5">
                             <h4 className="font-bold text-lg text-slate-800 mb-1">{item.nom}</h4>
                             <p className="text-sm text-slate-500 mb-3">{item.emplacement || item.type || item.description}</p>
+
+                            {/* Review Section */}
+                            {item.avis && (
+                              <div className="flex items-center gap-1 mb-3 text-sm text-amber-500 font-medium">
+                                <i className="fa-solid fa-star"></i>
+                                <span>{item.avis}</span>
+                              </div>
+                            )}
+
                             {item.lien && (
                               <a href={item.lien} target="_blank" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer">
                                 En savoir plus <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>

@@ -3,7 +3,7 @@
 const OPENROUTER_KEY = import.meta.env.VITE_OPENROUTER_KEY;
 
 export const genererVoyage = async (params) => {
-  const { destination, budget, style, diet, adultes, enfants, animaux, depart, dates, vibes } = params;
+  const { destination, rayon, budget, style, diet, adultes, enfants, animaux, depart, dates, vibes } = params;
 
   console.log(`🔍 Génération pour: ${destination} (${dates?.depart || '?'} - ${dates?.retour || '?'})`);
 
@@ -25,6 +25,7 @@ Aucun texte en dehors du JSON.Aucune phrase d'introduction.
 Paramètres utilisateur:
 {
   "destination": "${destination}",
+    "rayon_decouverte": "${rayon > 0 ? rayon + ' km autour' : 'Ville uniquement'}",
     "depart_lieu": "${depart}",
       "dates": "${dates ? `Du ${dates.depart} au ${dates.retour}` : "Non spécifiées"}",
         "duree_calculee": "${nombreJours ? nombreJours + ' Jours' : 'Non spécifié'}",
@@ -35,6 +36,12 @@ Paramètres utilisateur:
                   "voyageurs": { "adultes": ${adultes || 1}, "enfants": ${enfants || 0} },
   "animaux": ${animaux ? '"Oui"' : '"Non"'}
 }
+
+INSTRUCTIONS SPECIFIQUES "STYLE":
+Si "style" contient:
+- "Roadtrip Moto": Propose des routes scéniques avec virages, parkings sécurisés pour les hôtels obligatoires, et des étapes adaptées aux motards (pauses café, points de vue).
+- "Trekking": Inclus des détails sur les sentiers (difficulté, durée), et privilégie les refuges ou hébergements proches de la nature.
+- "Sportif": Centre le voyage autour d'activités physiques intenses (vélo, kayak, rando, sale de sport) et une nutrition adaptée.
 
 INSTRUCTIONS SPECIFIQUES "VIBE":
 Si "vibes_niche" contient:
@@ -50,10 +57,22 @@ Ton objectif est de générer un itinéraire de voyage complet et RÉALISTE.
 IMPORTANT SUR LA DUREE:
 ${nombreJours ? `L'utilisateur a spécifié des dates exactes couvrant ${nombreJours} JOURS. Tu DOIS générer un itinéraire détaillé pour EXACTEMENT ${nombreJours} JOURS.` : `Génère un itinéraire type de 3 jours (Week-end).`}
 
+IMPORTANT SUR LE RAYON:
+Si "rayon_decouverte" est supérieur à 0 km, tu PEUX et DOIS inclure des activités, restaurants ou visites situés dans ce rayon autour de la destination principale. Si c'est "Ville uniquement", reste strict.
+
+IMPORTANT SUR LA MÉTÉO:
+Utilise les dates fournies (${dates ? `Du ${dates.depart} au ${dates.retour}` : "Mois inconnu"}) pour estimer la météo probable (basée sur les normales saisonnières).
+
 Structure JSON attendue(STRICT) :
 {
   "destination": "string",
-    "budget_total_estime": "string",
+  "meteo": {
+    "temp_min": "string (ex: 15°C)",
+    "temp_max": "string (ex: 22°C)",
+    "description": "string (ex: Ensoleillé avec averses possibles)",
+    "conseils": "string (ex: Prévoyez un imperméable)"
+  },
+  "budget_total_estime": "string",
   "formalites": {
     "documents_obligatoires": ["string (ex: Passeport valide 6 mois)", "string (ex: Visa)"],
     "vaccins": ["string (ou 'Aucun')"],
@@ -63,13 +82,13 @@ Structure JSON attendue(STRICT) :
         { "type": "string", "compagnie": "string", "prix": "string", "lien": "string" }
       ],
         "hotels": [
-          { "nom": "string", "prix_par_nuit": "string", "emplacement": "string", "lien": "string", "coordinates": { "lat": number, "lng": number } }
+          { "nom": "string", "prix_par_nuit": "string", "avis": "string (ex: 4.5/5 sur Google)", "emplacement": "string", "lien": "string", "coordinates": { "lat": number, "lng": number } }
         ],
           "restaurants": [
-            { "nom": "string", "type": "string", "prix_moyen": "string", "lien": "string", "coordinates": { "lat": number, "lng": number } }
+            { "nom": "string", "type": "string", "prix_moyen": "string", "avis": "string (ex: 4.7/5 sur TripAdvisor)", "lien": "string", "coordinates": { "lat": number, "lng": number } }
           ],
             "activites": [
-              { "nom": "string", "prix": "string", "description": "string", "lien": "string", "coordinates": { "lat": number, "lng": number }, "id": "string (unique)" }
+              { "nom": "string", "prix": "string", "description": "string", "avis": "string (ex: 4.8/5)", "lien": "string", "coordinates": { "lat": number, "lng": number }, "id": "string (unique)" }
             ],
               "itineraire": [
                 {
