@@ -1,0 +1,16 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Trip {
+  id          String   @id @default(uuid())
+  userId      String   // Clerk User ID
+  destination String
+  content     String   // JSON string of the itinerary
+  createdAt   DateTime @default(now())
+}
