@@ -95,41 +95,99 @@ Structure JSON attendue(STRICT) :
 GENERE BIEN TOUS LES JOURS DEMANDÉS (${nombreJours}).
 `;
 
-  // Call OpenRouter (similar logic to previous proxy.js)
-  try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENROUTER_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "Travel Generator Next"
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free",
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
+  // List of models to try in order (fallback system)
+  const MODELS_TO_TRY = [
+    "mistralai/mistral-small-3.1-24b-instruct",
+    "google/gemini-2.0-flash-exp",
+    "anthropic/claude-3.5-haiku",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "qwen/qwen-2-7b-instruct:free"
+  ];
 
-    if (!response.ok) throw new Error("API Error");
+  // Try each model until one works
+  for (let i = 0; i < MODELS_TO_TRY.length; i++) {
+    const model = MODELS_TO_TRY[i];
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+    try {
+      console.log(`🚀 Trying model ${i + 1}/${MODELS_TO_TRY.length}: ${model}...`);
 
-    // Clean JSON
-    let cleanText = content.replace(/```json/g, "").replace(/```/g, "").trim();
-    const firstBrace = cleanText.indexOf('{');
-    const lastBrace = cleanText.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENROUTER_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "http://localhost:3000",
+          "X-Title": "Travel Generator Next"
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Model ${model} failed with ${response.status}:`, errorText.substring(0, 100));
+
+        // If this is the last model, return the error
+        if (i === MODELS_TO_TRY.length - 1) {
+          return {
+            error: "API Error",
+            details: `Tous les modèles ont échoué. Dernière erreur ${response.status}: ${errorText.substring(0, 150)}`
+          };
+        }
+
+        // Otherwise, try next model
+        continue;
+      }
+
+      const data = await response.json();
+
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error(`❌ Invalid response from ${model}:`, data);
+        if (i === MODELS_TO_TRY.length - 1) {
+          return {
+            error: "API Response Error",
+            details: "La réponse de l'API est invalide"
+          };
+        }
+        continue;
+      }
+
+      const content = data.choices[0].message.content;
+
+      // Clean JSON
+      let cleanText = content.replace(/```json/g, "").replace(/```/g, "").trim();
+      const firstBrace = cleanText.indexOf('{');
+      const lastBrace = cleanText.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+      }
+
+      console.log(`✅ Trip generated successfully with ${model}`);
+      return JSON.parse(cleanText);
+
+    } catch (e: any) {
+      console.error(`❌ Exception with model ${model}:`, e.message);
+
+      // If this is the last model, return the error
+      if (i === MODELS_TO_TRY.length - 1) {
+        return {
+          error: "Generation failed",
+          details: e.message || "Une erreur inconnue s'est produite"
+        };
+      }
+
+      // Otherwise, try next model
+      continue;
     }
-
-    return JSON.parse(cleanText);
-
-  } catch (e: any) {
-    console.error(e);
-    return { error: "Generation failed", details: e.message };
   }
+
+  // Fallback (should never reach here)
+  return {
+    error: "System Error",
+    details: "Aucun modèle n'a pu générer l'itinéraire"
+  };
 }
 
 

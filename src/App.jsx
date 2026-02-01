@@ -57,6 +57,7 @@ function App() {
   const [adultes, setAdultes] = useState(1);
   const [enfants, setEnfants] = useState(0);
   const [animaux, setAnimaux] = useState(false);
+  const [typeHebergement, setTypeHebergement] = useState('Hotel'); // Hotel, All-inclusive, Demi-pension, Airbnb
   const [dates, setDates] = useState({ depart: '', retour: '' });
   const [resultat, setResultat] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -87,7 +88,7 @@ function App() {
       // Removed duree from params, relying on dates
       // APPEL VIA LE PROXY (FRONTEND)
       // Removed duree from params, relying on dates
-      const data = await genererVoyageAPI({ depart, destination, rayon, budget, style: styles.join(', '), diet: diets.join(', '), adultes, enfants, animaux, dates, vibes });
+      const data = await genererVoyageAPI({ depart, destination, rayon, budget, style: styles.join(', '), diet: diets.join(', '), adultes, enfants, animaux, dates, vibes, typeHebergement });
 
       try {
         // The API now returns a parsed JSON object directly, no need to parse again.
@@ -167,11 +168,50 @@ function App() {
     html2pdf().set(opt).from(element).save();
   };
 
-  // Helper for generating consistent, high-quality image URLs
+  // Helper for generating varied, high-quality images
   const getImageUrl = (item, type, locationName) => {
-    // Combine item Name + Destination + Type + Keywords for best results
-    const query = `${item.nom} ${locationName} ${type} aesthetic travel photography high resolution`;
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?width=800&height=600&nologo=true`;
+    // Use a collection of curated Unsplash image IDs for each category
+    const imageCollections = {
+      'Hébergements': [
+        'photo-1566073771259-6a8506099945', // luxury hotel
+        'photo-1582719478250-c89cae4dc85b', // hotel room
+        'photo-1542314831-068cd1dbfeeb', // hotel lobby
+        'photo-1520250497591-112f2f40a3f4', // boutique hotel
+        'photo-1571896349842-33c89424de2d', // resort
+        'photo-1618773928121-c32242e63f39', // hotel exterior
+      ],
+      'Restaurants': [
+        'photo-1414235077428-338989a2e8c0', // restaurant interior
+        'photo-1517248135467-4c7edcad34c4', // fine dining
+        'photo-1555396273-367ea4eb4db5', // restaurant food
+        'photo-1550966871-3ed3cdb5ed0c', // cafe
+        'photo-1592861956120-e524fc739696', // restaurant table
+        'photo-1559339352-11d035aa65de', // restaurant ambiance
+      ],
+      'Activités': [
+        'photo-1488646953014-85cb44e25828', // landmark
+        'photo-1503220317375-aaad61436b1b', // tourist spot
+        'photo-1476514525535-07fb3b4ae5f1', // travel destination
+        'photo-1530789253388-582c481c54b0', // museum
+        'photo-1464207687429-7505649dae38', // adventure
+        'photo-1506905925346-21bda4d32df4', // mountain activity
+      ]
+    };
+
+    // Get the collection for this type
+    const collection = imageCollections[type] || imageCollections['Activités'];
+
+    // Create a hash from item name to get consistent but varied index
+    let hash = 0;
+    const str = item.nom || '';
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash = hash & hash;
+    }
+    const index = Math.abs(hash) % collection.length;
+
+    // Return the image URL
+    return `https://images.unsplash.com/${collection[index]}?auto=format&fit=crop&w=800&q=80`;
   };
 
   return (
@@ -441,6 +481,35 @@ function App() {
               </div>
             </div>
 
+            {/* Type d'hébergement */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+              <label className="block text-sm font-bold text-slate-800 mb-3">
+                <i className="fa-solid fa-bed mr-2 text-indigo-500"></i>
+                Type d'hébergement
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'Hotel', label: 'Hôtel', icon: 'fa-hotel' },
+                  { value: 'All-inclusive', label: 'All-inclusive', icon: 'fa-utensils' },
+                  { value: 'Demi-pension', label: 'Demi-pension', icon: 'fa-mug-hot' },
+                  { value: 'Airbnb', label: 'Airbnb', icon: 'fa-house' }
+                ].map((type) => (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setTypeHebergement(type.value)}
+                    className={`p-3 rounded-lg border-2 transition text-sm font-semibold flex items-center justify-center gap-2 ${typeHebergement === type.value
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300'
+                      }`}
+                  >
+                    <i className={`fa-solid ${type.icon}`}></i>
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Animaux */}
             <div
               onClick={() => setAnimaux(!animaux)}
@@ -511,6 +580,39 @@ function App() {
             ) : (
               <div id="itinerary-container" className="space-y-8 animate-fade-in-up">
 
+                {/* Budget Warning Alert */}
+                {resultat.budget_warning && (
+                  <div className={`p-6 rounded-2xl shadow-lg border-2 ${resultat.budget_warning.includes('INSUFFISANT')
+                    ? 'bg-red-50 border-red-300'
+                    : 'bg-orange-50 border-orange-300'
+                    }`}>
+                    <div className="flex items-start gap-4">
+                      <div className={`text-3xl ${resultat.budget_warning.includes('INSUFFISANT')
+                        ? 'text-red-600'
+                        : 'text-orange-600'
+                        }`}>
+                        {resultat.budget_warning.includes('INSUFFISANT') ? '🚨' : '⚠️'}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`text-xl font-bold mb-2 ${resultat.budget_warning.includes('INSUFFISANT')
+                          ? 'text-red-800'
+                          : 'text-orange-800'
+                          }`}>
+                          {resultat.budget_warning.includes('INSUFFISANT')
+                            ? 'Budget Insuffisant'
+                            : 'Budget Serré'}
+                        </h3>
+                        <p className={`text-sm leading-relaxed ${resultat.budget_warning.includes('INSUFFISANT')
+                          ? 'text-red-700'
+                          : 'text-orange-700'
+                          }`}>
+                          {resultat.budget_warning}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Header Result */}
                 <div className="bg-white p-8 rounded-2xl shadow-sm text-center border border-indigo-50">
                   <h2 className="text-3xl font-serif font-bold text-indigo-900 mb-2">
@@ -577,46 +679,90 @@ function App() {
                       <span className={`bg-${section.color}-100 p-2 rounded-lg text-xl`}>{section.icon}</span> {section.title}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {section.data.map((item, i) => (
-                        <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md transition group">
-                          <div className="h-48 overflow-hidden relative">
-                            <img
-                              src={getImageUrl(item, section.title, resultat.destination)}
-                              className="w-full h-full object-cover transform group-hover:scale-105 transition duration-500"
-                              alt={item.nom}
-                              onError={(e) => {
-                                e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80"; // Fallback
-                              }}
-                              loading="lazy"
-                            />
-                            <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded-md shadow-sm">
-                              {item.prix_par_nuit || item.prix_moyen || item.prix}
+                      {section.data.map((item, i) => {
+                        return (
+                          <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md transition group">
+                            {/* Image section removed as per user request */}
+
+                            <div className="p-5">
+                              <div className="flex items-start justify-between mb-3">
+                                <h4 className="font-bold text-lg text-slate-800 flex-1">{item.nom}</h4>
+                                <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold ml-2 whitespace-nowrap">
+                                  {item.prix_par_nuit || item.prix_moyen || item.prix}
+                                </div>
+                              </div>
+                              <p className="text-sm text-slate-500 mb-3">{item.emplacement || item.type || item.description}</p>
+
+                              {/* Review Section */}
+                              {item.avis && (
+                                <div className="flex items-center gap-1 mb-3 text-sm text-amber-500 font-medium">
+                                  <i className="fa-solid fa-star"></i>
+                                  <span>{item.avis}</span>
+                                </div>
+                              )}
+
+                              {item.lien && (
+                                <a href={item.lien} target="_blank" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer">
+                                  En savoir plus <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                                </a>
+                              )}
                             </div>
                           </div>
-
-                          <div className="p-5">
-                            <h4 className="font-bold text-lg text-slate-800 mb-1">{item.nom}</h4>
-                            <p className="text-sm text-slate-500 mb-3">{item.emplacement || item.type || item.description}</p>
-
-                            {/* Review Section */}
-                            {item.avis && (
-                              <div className="flex items-center gap-1 mb-3 text-sm text-amber-500 font-medium">
-                                <i className="fa-solid fa-star"></i>
-                                <span>{item.avis}</span>
-                              </div>
-                            )}
-
-                            {item.lien && (
-                              <a href={item.lien} target="_blank" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer">
-                                En savoir plus <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
+
+                {/* Budget Summary Section */}
+                {resultat.budget_recap && (
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-8 rounded-2xl shadow-sm border border-green-100">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-2xl font-serif font-bold text-slate-800 flex items-center gap-2">
+                        <span className="bg-green-100 p-2 rounded-lg text-xl">💰</span> Récapitulatif Budgétaire
+                      </h3>
+                      <div className="bg-white px-4 py-2 rounded-full border border-green-200 shadow-sm">
+                        <span className="text-sm font-semibold text-green-700">
+                          👥 {adultes} adulte{adultes > 1 ? 's' : ''} {enfants > 0 && `+ ${enfants} enfant${enfants > 1 ? 's' : ''}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                        <div className="text-sm text-slate-500 mb-1">Transports</div>
+                        <div className="text-2xl font-bold text-slate-800">{resultat.budget_recap.transports_total}</div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                        <div className="text-sm text-slate-500 mb-1">Hébergement</div>
+                        <div className="text-2xl font-bold text-slate-800">{resultat.budget_recap.hebergement_total}</div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                        <div className="text-sm text-slate-500 mb-1">Restaurants</div>
+                        <div className="text-2xl font-bold text-slate-800">{resultat.budget_recap.restaurants_total}</div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                        <div className="text-sm text-slate-500 mb-1">Activités</div>
+                        <div className="text-2xl font-bold text-slate-800">{resultat.budget_recap.activites_total}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 rounded-xl text-white mb-4">
+                      <div className="text-sm opacity-90 mb-1">Budget Total Estimé</div>
+                      <div className="text-4xl font-bold">{resultat.budget_recap.total_estime}</div>
+                    </div>
+
+                    {resultat.budget_recap.notes && (
+                      <div className="bg-white p-4 rounded-xl border border-green-100">
+                        <div className="text-xs font-semibold text-green-700 mb-2">📝 Notes sur la tarification</div>
+                        <p className="text-sm text-slate-600">{resultat.budget_recap.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start pt-6 border-t border-slate-100">
                   {/* Emergency Button & Text */}
